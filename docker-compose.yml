@@ -1,0 +1,119 @@
+services:
+  homeos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: homeos:local
+    container_name: homeos
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    init: true
+    user: "1000:1000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    ports:
+      - "127.0.0.1:3010:3000"
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      HOMEOS_DB_PATH: /var/lib/homeos/homeos.sqlite
+      HOMEOS_DATA_ROOT: /mnt/homeos-data
+      HOMEOS_DOCKER_HELPER_URL: http://docker-helper:8765
+      HOMEOS_DOCKER_HELPER_SECRET: ${HOMEOS_DOCKER_HELPER_SECRET:?Set HOMEOS_DOCKER_HELPER_SECRET in .env.production}
+    networks:
+      - control
+      - outbound
+    volumes:
+      - type: bind
+        source: /mnt/storage
+        target: /mnt/storage
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/homeos-data
+        target: /mnt/homeos-data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/homeos-state
+        target: /var/lib/homeos
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  docker-helper:
+    build:
+      context: .
+      dockerfile: Dockerfile.docker-helper
+    image: homeos-docker-helper:local
+    container_name: homeos-docker-helper
+    restart: unless-stopped
+    user: "1000:1000"
+    group_add:
+      - "${DOCKER_GID:-999}"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    environment:
+      HOMEOS_DOCKER_HELPER_SECRET: ${HOMEOS_DOCKER_HELPER_SECRET:?Set HOMEOS_DOCKER_HELPER_SECRET in .env.production}
+      HOMEOS_GITHUB_REPOSITORIES: ${HOMEOS_GITHUB_REPOSITORIES:-[]}
+      HOMEOS_DATA_ROOT: /mnt/homeos-data
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/homeos-data
+        target: /mnt/homeos-data
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - control
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8765/health',{headers:{Authorization:'Bearer '+process.env.HOMEOS_DOCKER_HELPER_SECRET}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+networks:
+  control:
+    name: homeos-control
+    internal: true
+  outbound:
+    name: homeos-outbound
+    driver: bridge
+  public:
+    name: homeos-public
+    driver: bridge

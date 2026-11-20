@@ -1,0 +1,10 @@
+.git
+.next
+node_modules
+.npm-cache
+.ssh
+.homeos
+.env*
+*.tsbuildinfo
+coverage
+tests
