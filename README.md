@@ -45,9 +45,10 @@ The app will show a setup notice until both the password hash and a session secr
 ## Production notes
 
 - `npm start` checks auth secrets and a mounted writable `HOMEOS_DATA_ROOT` outside `/mnt/storage`, and refuses UID 0. In Compose, HomeOS runs as UID/GID 1000.
-- The included `Dockerfile` and `docker-compose.yml` build a standalone production image with a read-only container filesystem, dropped Linux capabilities, and the existing storage volume mounted read-only. The web service binds to `127.0.0.1:3010`; place it behind a private HTTPS reverse proxy or VPN.
+- The included `Dockerfile` and `docker-compose.yml` build a standalone production image with a read-only container filesystem, dropped Linux capabilities, and the existing storage volume mounted read-only. The web service binds to `0.0.0.0:3010`; place it behind a private HTTPS reverse proxy or VPN.
 - Prepare three paths before deployment: the existing `/mnt/storage` data mount, a dedicated writable `/mnt/homeos-data` volume for uploads, and a private writable `/mnt/homeos-state` path for SQLite state. Make the latter two writable by UID/GID 1000. Do not point either writable path at `/mnt/storage`.
 - Copy `.env.example` to `.env.production`, set the password hash and random secrets, then run `docker compose --env-file .env.production config --quiet`, `docker compose --env-file .env.production build`, and `docker compose --env-file .env.production up -d`. Keep `.env.production` private and out of Git.
+- Login sessions require HTTPS by default. For short-term testing on a trusted private network only, set `HOMEOS_COOKIE_SECURE=false` in `.env.production`; switch it back to `true` before exposing HomeOS beyond that network.
 - For local non-container production, set the same variables and run `npm run build && npm start`; the startup preflight requires the data volume to exist and be writable.
 - Keep the dashboard on a private network or behind a trusted VPN and HTTPS reverse proxy. Do not publish it as a public website.
 - Set `HOMEOS_DB_PATH` to a private writable location for SQLite. The default is `.homeos/homeos.sqlite` in the app directory; HomeOS applies restrictive POSIX permissions where supported. The database is explicitly blocked from `/mnt/storage` so HomeOS never writes to the userâ€™s storage volume.

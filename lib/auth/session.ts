@@ -117,7 +117,9 @@ export async function requireSession() {
 export function sessionCookieOptions(maxAge: number) {
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Keep production cookies HTTPS-only unless an operator explicitly enables
+    // temporary HTTP access on a private network.
+    secure: process.env.NODE_ENV === "production" && process.env.HOMEOS_COOKIE_SECURE !== "false",
     sameSite: "strict" as const,
     path: "/",
     maxAge,
