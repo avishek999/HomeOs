@@ -54,7 +54,7 @@ The app will show a setup notice until both the password hash and a session secr
 - Keep the dashboard on a private network or behind a trusted VPN and HTTPS reverse proxy. Do not publish it as a public website.
 - Set `HOMEOS_DB_PATH` to a private writable location for SQLite. The default is `.homeos/homeos.sqlite` in the app directory; HomeOS applies restrictive POSIX permissions where supported. The database is explicitly blocked from `/mnt/storage` so HomeOS never writes to the userâ€™s storage volume.
 - Mount the server volume at `/mnt/storage` and grant the unprivileged HomeOS account read and directory-traversal access only.
-- The file browser lists directory and file metadata only. It has no write, delete, rename, download, or shell execution endpoint.
+- The file browser permits authenticated downloads of regular files from the read-only storage mount. It has no write, delete, rename, or shell execution endpoint.
 - The Docker socket is mounted only into the isolated `docker-helper` service. Keep that helper on the internal Compose network, use a unique 32-character helper secret, and never publish its port.
 - GitHub deployment is disabled unless `HOMEOS_GITHUB_TOKEN` and `HOMEOS_GITHUB_REPOSITORIES` are configured. Use a fine-grained token limited to read-only Contents access for only the listed repositories.
 - Use the provided `.env.example` as a starting point. Secrets belong in the service manager's protected environment configuration.

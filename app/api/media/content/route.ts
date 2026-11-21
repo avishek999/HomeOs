@@ -36,6 +36,8 @@ export async function GET(request: Request) {
   try {
     const file = await resolveStorageFile(relativePath)
     const preview = new URL(request.url).searchParams.get("preview") === "1"
+    const download = new URL(request.url).searchParams.get("download") === "1"
+    const disposition = download ? `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(relativePath))}` : "inline"
     if (preview && (type === "image/heic" || type === "image/heif")) {
       if (file.size > 100 * 1024 * 1024) return failure("This HEIC image exceeds the 100 MB preview limit.", 413)
       const temporary = await mkdtemp(path.join(os.tmpdir(), `homeos-heic-${randomUUID()}-`))
@@ -46,7 +48,7 @@ export async function GET(request: Request) {
         const converted = await sharp(await readFile(convertedPath), { limitInputPixels: 100_000_000, sequentialRead: true })
           .rotate().resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
           .jpeg({ quality: 86, mozjpeg: true }).toBuffer()
-        return new Response(new Uint8Array(converted), { status: 200, headers: { "Content-Type": "image/jpeg", "Content-Length": String(converted.length), "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" } })
+        return new Response(new Uint8Array(converted), { status: 200, headers: { "Content-Type": "image/jpeg", "Content-Length": String(converted.length), "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Disposition": disposition } })
       } finally { await rm(temporary, { recursive: true, force: true }) }
     }
     if (file.size === 0) return new Response(null, { status: 200, headers: { "Content-Type": type, "Content-Length": "0", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } })
@@ -78,7 +80,7 @@ export async function GET(request: Request) {
       "Accept-Ranges": "bytes",
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
-      "Content-Disposition": "inline",
+      "Content-Disposition": disposition,
     })
     if (status === 206) headers.set("Content-Range", `bytes ${start}-${end}/${file.size}`)
     return new Response(Readable.toWeb(stream) as ReadableStream, { status, headers })
