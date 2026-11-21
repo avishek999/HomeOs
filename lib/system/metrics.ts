@@ -41,7 +41,11 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
     cpuPercent: Math.round(load.currentLoad * 10) / 10,
     cpuCores: load.cpus.length || (await si.cpu()).cores,
     memoryTotal: memory.total,
-    memoryUsed: memory.used,
+    // Linux uses otherwise idle RAM for filesystem cache. `used` includes that
+    // reclaimable cache, while `available` is the amount that can be allocated
+    // without swapping; reporting total - available matches the host's actual
+    // memory pressure (as shown by tools such as `free` and Cockpit).
+    memoryUsed: Math.max(0, memory.total - memory.available),
     storageTotal: rootFs?.size ?? 0,
     storageUsed: rootFs?.used ?? 0,
     sampledAt: new Date().toISOString(),

@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "node scripts/start-production.mjs",
+    "dev": "node init && next dev",
+    "build": "node init && next build",
+    "start": "node init && node scripts/start-production.mjs",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:smoke": "node tests/phase1-smoke.mjs",
