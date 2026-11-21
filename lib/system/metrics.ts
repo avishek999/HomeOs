@@ -34,8 +34,9 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
     si.osInfo(),
   ])
   const rootFs = filesystems.find((item) => item.mount === "/") ?? filesystems[0]
+  const configuredServerName = process.env.HOMEOS_SERVER_NAME?.trim()
   return {
-    hostname: os.hostname || "Unknown host",
+    hostname: configuredServerName || os.hostname || "Unknown host",
     platform: `${os.distro || os.platform} ${os.release}`,
     uptimeSeconds: Math.floor(si.time().uptime),
     cpuPercent: Math.round(load.currentLoad * 10) / 10,
